@@ -24,30 +24,10 @@ inv_model_paper = ['inception_v3', 'inception_resnet_v2']
 vit_model_paper = ['vit_base_patch16_224', 'pit_b_224']
 ens_model_paper = ['IncV3Ens3', 'IncV3Ens4', 'IncResV2Ens'] 
 
-cnn_model_paper_d = ['inception_v3', 'inception_v4','inception_resnet_v2','resnet101','vgg19','densenet121']
-vit_model_paper_d = ['vit_base_patch16_224','levit_256', 'pit_b_224','cait_s24_224','convit_base', 'tnt_s_patch16_224', 'visformer_small']
-
-cnn_model_paper_g = ['vgg16', 'resnet18', 'resnet50', 'densenet121', 'mobilenet_v2']
-inv_model_paper_g = ['inception_resnet_v2', 'inception_v3', 'inception_v4'] 
-vit_model_paper_g = ['vit_base_patch16_224', 'pit_b_224'] 
-ens_model_paper_g = ['IncV3Ens3', 'IncV3Ens4', 'IncResV2Ens'] 
-
-
-cnn_model_pkg = ['vgg19', 'resnet18', 'resnet101',
-                 'resnext50_32x4d', 'densenet121', 'mobilenet_v2']
-
-vit_model_pkg = ['vit_base_patch16_224', 'pit_b_224', 'cait_s24_224', 'visformer_small',
-                 'tnt_s_patch16_224', 'levit_256', 'convit_base', 'swin_tiny_patch4_window7_224']
-
-tgr_vit_model_list = ['vit_base_patch16_224', 'pit_b_224', 'cait_s24_224', 'visformer_small',
-                      'deit_base_distilled_patch16_224', 'tnt_s_patch16_224', 'levit_256', 'convit_base']
+cnn_model_paper_all = ['vgg16', 'resnet18', 'resnet50', 'densenet121', 'mobilenet_v2']
+inv_model_paper_all = ['inception_resnet_v2', 'inception_v3', 'inception_v4'] 
 
 def load_pretrained_model(cnn_model=[], inv_model=[], vit_model=[], ens_model=[]):
-    # for model_name in cnn_model:
-    #     if model_name in models.__dict__:
-    #         yield model_name, models.__dict__[model_name](weights="DEFAULT")
-    #     else: 
-    #         yield model_name, timm.create_model(model_name, pretrained=True)
     for model_name in cnn_model:
         yield model_name, models.__dict__[model_name](weights="DEFAULT")
     for model_name in inv_model:
@@ -100,6 +80,13 @@ def wrap_model(model):
     normalize = transforms.Normalize(mean, std)
     return torch.nn.Sequential(normalize, model)
 
+def prepare_model(model):
+    """Prepare model for evaluation"""
+    model = wrap_model(model.eval().cuda())
+    for p in model.parameters():
+        p.requires_grad = False
+    return model
+
 def save_images(output_dir, adversaries, filenames):
     adversaries = (adversaries.detach().permute((0,2,3,1)).cpu().numpy() * 255).astype(np.uint8)
     for i, filename in enumerate(filenames):
@@ -107,7 +94,6 @@ def save_images(output_dir, adversaries, filenames):
 
 def clamp(x, x_min, x_max):
     return torch.min(torch.max(x, x_min), x_max)
-
 
 class EnsembleModel(torch.nn.Module):
     def __init__(self, models, mode='mean'):

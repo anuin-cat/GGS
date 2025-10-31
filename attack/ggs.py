@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from utils import *
+from attack.utils import *
 
 class GGS():
     """

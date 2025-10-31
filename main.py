@@ -3,18 +3,11 @@ import argparse
 import tqdm 
 import torch 
 import random
+
+from attack.utils import * 
+from attack.ggs import GGS
 from prettytable import PrettyTable
-
-from utils import * 
-from ggs import GGS
 from torch.utils.data import DataLoader
-
-class ImageNet(Dataset):
-    def __init__(self, input_dir, output_dir, targeted=False, eval=False):
-        self.input_dir = input_dir
-        self.output_dir = output_dir
-        self.targeted = targeted
-        self.eval = eval
 
 # Set random seed
 def set_seed(sd: int=17):
@@ -31,16 +24,16 @@ def get_parser():
     parser = argparse.ArgumentParser(description='Generating transferable adversaria examples') 
     # basic settings
     parser.add_argument('--epoch', default=10, type=int, help='the iterations for updating the adversarial patch') 
-    parser.add_argument('--batchsize', default=16, type=int, help='the bacth size') 
+    parser.add_argument('--batchsize', default=8, type=int, help='the bacth size') 
     parser.add_argument('--eps', default=16 / 255, type=float, help='the stepsize to update the perturbation') 
     parser.add_argument('--alpha', default=1.6 / 255, type=float, help='the stepsize to update the perturbation') 
     parser.add_argument('--zeta', default=2, type=float, help='') 
     parser.add_argument('--momentum', default=0., type=float, help='the decay factor for momentum based attack') 
-    parser.add_argument('--num_neighbor', default=20, type=int, help='the number of neighbors') 
-    parser.add_argument('--model', default='resnet50', type=str, help='the source surrogate model', 
-                        choices=['resnet18', 'resnet50', 'resnet101', 'resnext50_32x4d', 'densenet121', 
+    parser.add_argument('--num_neighbor', default=1, type=int, help='the number of neighbors') 
+    parser.add_argument('--model', default='resnet18', type=str, help='the source surrogate model', 
+                        choices=['resnet18', 'resnet50', 'resnet101', 'resnext50_32x4d', 'densenet121',
                                  'inception_v3', 'inception_v4', 'inception_resnet_v2',
-                                 'vit_base_patch16_224','pit_b_224','visformer_small','swin_tiny_patch4_window7_224']) 
+                                 'vit_base_patch16_224','pit_b_224','visformer_small','swin_tiny_patch4_window7_224'])
     # mode settings
     parser.add_argument('--eval', action='store_true', help='evaluation mode (default: False)') 
     parser.add_argument('--ensemble', action='store_true', help='enable ensemble attack (default: False)') 
@@ -53,7 +46,7 @@ def get_parser():
 
     args = parser.parse_args()
 
-    return args 
+    return args
 
 
 def main(args):
@@ -82,42 +75,42 @@ def main(args):
             save_images(args.output_dir, images + perturbations.cpu(), filenames)
     else:
         # Evaluation mode
-        asr = dict()
-        res = '|'
         avg = 0
+        model_count = 0
 
         # Create table
         table = PrettyTable()
         table.field_names = ["Model Name", "ASR (%)"]
-        table.align["Model Name"] = "l"  # Left align
-        table.align["ASR (%)"] = "r"   # Right align
         
-        for model_name, model in load_pretrained_model(cnn_model_paper, inv_model_paper, vit_model_paper):
-        # for model_name, model in load_pretrained_model(cnn_model_paper, inv_model_paper, vit_model_paper, ens_model_paper):
-            bias = 1 if model_name in ens_model_paper else 0
-            model = wrap_model(model.eval().cuda())
-            for p in model.parameters():
-                p.requires_grad = False
+        # Helper function to evaluate model on dataloader
+        def evaluate_model(model, dataloader, targeted, bias):
+            """Evaluate model and return correct predictions count."""
             correct, total = 0, 0
             for images, labels, _ in dataloader:
-                if args.targeted:
-                    labels = labels[1]
+                labels = labels[1] if targeted else labels
                 pred = model(images.cuda())
                 dim = 1 if len(pred.shape) == 2 else 0
                 correct += (labels.numpy() == pred.argmax(dim=dim).detach().cpu().numpy() - bias).sum()
                 total += labels.shape[0]
-            if args.targeted: # correct: pred == target_label
-                asr[model_name] = (correct / total) * 100
-            else: # correct: pred == original_label
-                asr[model_name] = (1 - correct / total) * 100
+            return correct, total
+        
+        for model_name, model in load_pretrained_model(cnn_model_paper, inv_model_paper, vit_model_paper):
+        # for model_name, model in load_pretrained_model(cnn_model_paper, inv_model_paper, vit_model_paper, ens_model_paper):
+            bias = 1 if model_name in ens_model_paper else 0
+            model = prepare_model(model)
+            correct, total = evaluate_model(model, dataloader, args.targeted, bias)
+            
+            # Calculate ASR
+            asr_value = (correct / total) * 100 if args.targeted else (1 - correct / total) * 100
+            
             # Add row to table
-            table.add_row([model_name, f"{asr[model_name]:.2f}"])
-            res += ' {:.1f} |'.format(asr[model_name])
-            avg += asr[model_name]
+            table.add_row([model_name, f"{asr_value:.2f}"])
+            avg += asr_value
+            model_count += 1
 
-        # print table
-        avg_asr = avg / len(asr)
-        table.add_row(["Average", f"{avg_asr:.2f}"])
+        # Print table
+        avg_asr = avg / model_count
+        table.add_row(["**Avg**", f"{avg_asr:.2f}"])
         print(table)
 
         # Save table results to file
