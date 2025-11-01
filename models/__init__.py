@@ -8,6 +8,6 @@ ens_models = {'IncV3Ens3': IncV3Ens3,
           'IncResV2Ens': IncResV2Ens,
           'AdvIncV3': AdvIncV3}
 
-ens_path = {'IncV3Ens3': '/root/autodl-tmp/models/tf2torch_ens3_adv_inc_v3.npy', 
-        'IncV3Ens4': '/root/autodl-tmp/models/tf2torch_ens4_adv_inc_v3.npy', 
-        'IncResV2Ens': '/root/autodl-tmp/models/tf2torch_ens_adv_inc_res_v2.npy'}
+ens_path = {'IncV3Ens3': 'models/npy/tf2torch_ens3_adv_inc_v3.npy', 
+        'IncV3Ens4': 'models/npy/tf2torch_ens4_adv_inc_v3.npy', 
+        'IncResV2Ens': 'models/npy/tf2torch_ens_adv_inc_res_v2.npy'}

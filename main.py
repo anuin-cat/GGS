@@ -24,12 +24,12 @@ def get_parser():
     parser = argparse.ArgumentParser(description='Generating transferable adversaria examples') 
     # basic settings
     parser.add_argument('--epoch', default=10, type=int, help='the iterations for updating the adversarial patch') 
-    parser.add_argument('--batchsize', default=8, type=int, help='the bacth size') 
+    parser.add_argument('--batchsize', default=32, type=int, help='the bacth size') 
     parser.add_argument('--eps', default=16 / 255, type=float, help='the stepsize to update the perturbation') 
     parser.add_argument('--alpha', default=1.6 / 255, type=float, help='the stepsize to update the perturbation') 
     parser.add_argument('--zeta', default=2, type=float, help='') 
     parser.add_argument('--momentum', default=0., type=float, help='the decay factor for momentum based attack') 
-    parser.add_argument('--num_neighbor', default=1, type=int, help='the number of neighbors') 
+    parser.add_argument('--num_neighbor', default=20, type=int, help='the number of neighbors') 
     parser.add_argument('--model', default='resnet18', type=str, help='the source surrogate model', 
                         choices=['resnet18', 'resnet50', 'resnet101', 'resnext50_32x4d', 'densenet121',
                                  'inception_v3', 'inception_v4', 'inception_resnet_v2',
