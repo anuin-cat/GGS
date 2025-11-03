@@ -43,7 +43,7 @@ python main.py --eval  --model resnet18 --batchsize 16
 @inproceedings{Niu2025GGS,
   title     = {Enhancing Adversarial Transferability by Balancing Exploration and Exploitation with Gradient-Guided Sampling},
   author    = {Zenghao Niu and Weicheng Xie and Siyang Song and Zitong Yu and Feng Liu and Linlin Shen},
-  booktitle = {ICCV},
+  booktitle = {International Conference on Computer Vision (ICCV)},
   year      = {2025}
 }
 ```
